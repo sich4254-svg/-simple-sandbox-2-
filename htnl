@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <title>SSB2 — Мониторинг читеров</title>
+    <style>
+        /* ====== ВСЕ СТИЛИ (без изменений) ====== */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #080c14;
+            color: #e8edf5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            background-image:
+                radial-gradient(ellipse at 20% 50%, rgba(43, 108, 143, 0.10) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(90, 63, 107, 0.10) 0%, transparent 60%),
+                linear-gradient(180deg, #0b111e 0%, #0b0e14 100%);
+            background-attachment: fixed;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(18, 28, 45, 0.88);
+            backdrop-filter: blur(16px);
+            border-radius: 40px;
+            padding: 28px 24px 34px;
+            box-shadow:
+                0 40px 80px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(61, 87, 117, 0.25);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at center, rgba(43, 108, 143, 0.04) 0%, transparent 70%);
+            pointer-events: none;
+            animation: rotateGlow 60s linear infinite;
+        }
+        @keyframes rotateGlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 28px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 16px;
+            margin-bottom: 4px;
+            position: relative;
+            z-index: 1;
+            letter-spacing: -0.5px;
+        }
+        h1 .accent { color: #3f8bb3; }
+        h1 small {
+            font-weight: 400;
+            font-size: 15px;
+            color: #6e8aa6;
+            letter-spacing: 0.3px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 14px;
+            border-radius: 30px;
+            border: 1px solid rgba(61, 87, 117, 0.3);
+        }
+        .subtitle {
+            color: #7a94b2;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 3px solid #3f8bb3;
+            padding-left: 16px;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid rgba(61, 87, 117, 0.2);
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #6e8aa6;
+            padding: 8px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 30px;
+            transition: 0.25s;
+            border: 1px solid transparent;
+            letter-spacing: 0.3px;
+        }
+        .tab-btn:hover {
+            background: rgba(43, 108, 143, 0.12);
+            color: #c8dae8;
+        }
+        .tab-btn.active {
+            background: rgba(43, 108, 143, 0.2);
+            color: #fff;
+            border-color: #3f8bb3;
+            box-shadow: 0 0 20px rgba(43, 108, 143, 0.15);
+        }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .last-update {
+            color: #5a7a96;
+            font-size: 13px;
+            margin-bottom: 18px;
+            text-align: right;
+            position: relative;
+            z-index: 1;
+            opacity: 0.8;
+        }
+
+        .regions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 18px;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .region-card {
+            background: rgba(26, 40, 60, 0.6);
+            backdrop-filter: blur(4px);
+            border-radius: 20px;
+            padding: 18px 12px 16px;
+            text-align: center;
+            border: 1px solid rgba(61, 87, 117, 0.2);
+            transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        .region-card:hover {
+            transform: translateY(-6px) scale(1.01);
+            border-color: rgba(63, 139, 179, 0.5);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5), 0 0 40px rgba(43, 108, 143, 0.08);
+        }
+
+        .region-name {
+            font-weight: 600;
+            font-size: 17px;
+            margin-bottom: 12px;
+            color: #d6e0ee;
+            letter-spacing: 0.2px;
+        }
+        .region-name .label {
+            font-weight: 400;
+            color: #6e8aa6;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .circle {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            margin: 0 auto 6px;
+            box-shadow: 0 0 0 2px rgba(45, 59, 78, 0.5), 0 0 24px rgba(0, 0, 0, 0.4);
+            transition: background 0.4s ease, box-shadow 0.4s ease;
+            will-change: transform;
+        }
+
+        @keyframes pulse-green {
+            0% { transform: scale(1); box-shadow: 0 0 0 2px rgba(46, 155, 94, 0.3), 0 0 20px rgba(46, 155, 94, 0.1); }
+            50% { transform: scale(1.06); box-shadow: 0 0 0 6px rgba(46, 155, 94, 0.15), 0 0 30px rgba(46, 155, 94, 0.2); }
+            100% { transform: scale(1); box-shadow: 0 0 0 2px rgba(46, 155, 94, 0.3), 0 0 20px rgba(46, 155, 94, 0.1); }
+        }
+        @keyframes pulse-yellow {
+            0% { transform: scale(1); box-shadow: 0 0 0 2px rgba(212, 184, 76, 0.3), 0 0 20px rgba(212, 184, 76, 0.1); }
+            50% { transform: scale(1.12); box-shadow: 0 0 0 8px rgba(212, 184, 76, 0.15), 0 0 40px rgba(212, 184, 76, 0.25); }
+            100% { transform: scale(1); box-shadow: 0 0 0 2px rgba(212, 184, 76, 0.3), 0 0 20px rgba(212, 184, 76, 0.1); }
+        }
+        @keyframes pulse-orange {
+            0% { transform: scale(1); box-shadow: 0 0 0 2px rgba(217, 122, 43, 0.3), 0 0 20px rgba(217, 122, 43, 0.1); }
+            50% { transform: scale(1.20); box-shadow: 0 0 0 12px rgba(217, 122, 43, 0.15), 0 0 50px rgba(217, 122, 43, 0.3); }
+            100% { transform: scale(1); box-shadow: 0 0 0 2px rgba(217, 122, 43, 0.3), 0 0 20px rgba(217, 122, 43, 0.1); }
+        }
+        @keyframes pulse-red {
+            0% { transform: scale(1); box-shadow: 0 0 0 2px rgba(197, 62, 62, 0.3), 0 0 20px rgba(197, 62, 62, 0.1); }
+            50% { transform: scale(1.30); box-shadow: 0 0 0 16px rgba(197, 62, 62, 0.15), 0 0 60px rgba(197, 62, 62, 0.35); }
+            100% { transform: scale(1); box-shadow: 0 0 0 2px rgba(197, 62, 62, 0.3), 0 0 20px rgba(197, 62, 62, 0.1); }
+        }
+        .pulse-green { animation: pulse-green 2.8s ease-in-out infinite; }
+        .pulse-yellow { animation: pulse-yellow 2.2s ease-in-out infinite; }
+        .pulse-orange { animation: pulse-orange 1.6s ease-in-out infinite; }
+        .pulse-red { animation: pulse-red 1.0s ease-in-out infinite; }
+
+        .status-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #b0c2d6;
+            background: rgba(15, 23, 34, 0.6);
+            padding: 3px 14px;
+            border-radius: 30px;
+            display: inline-block;
+            letter-spacing: 0.3px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(61, 87, 117, 0.15);
+        }
+
+        .cheater-count {
+            font-size: 13px;
+            color: #8fa0b8;
+            margin-top: 4px;
+            background: rgba(15, 23, 34, 0.5);
+            padding: 2px 14px;
+            border-radius: 30px;
+            display: inline-block;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(61, 87, 117, 0.1);
+        }
+
+        .report-stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #b0c2d6;
+            background: rgba(15, 23, 34, 0.4);
+            padding: 4px 10px;
+            border-radius: 30px;
+            backdrop-filter: blur(4px);
+        }
+        .report-stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .report-stats .dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 6px;
+            position: relative;
+            z-index: 1;
+        }
+        .action-bar .left-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .action-bar .cooldown {
+            font-size: 13px;
+            color: #6e8aa6;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 14px;
+            border-radius: 30px;
+            border: 1px solid rgba(61, 87, 117, 0.2);
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+        .action-bar .cooldown.show { display: inline-flex; }
+        .action-bar .cooldown .time {
+            font-weight: 600;
+            color: #d6e0ee;
+        }
+
+        .btn {
+            background: rgba(45, 63, 87, 0.7);
+            backdrop-filter: blur(4px);
+            border: none;
+            color: #eef4fc;
+            padding: 10px 24px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.25s;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(62, 86, 114, 0.3);
+            touch-action: manipulation;
+            letter-spacing: 0.2px;
+        }
+        .btn:hover {
+            background: rgba(58, 82, 112, 0.8);
+            transform: scale(1.02);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+            border-color: rgba(63, 139, 179, 0.4);
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary {
+            background: linear-gradient(135deg, #2b6c8f, #1f5577);
+            border-color: #3f8bb3;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #3581a8, #26628a);
+        }
+        .btn-admin {
+            background: linear-gradient(135deg, #5a3f6b, #4a2f5a);
+            border-color: #7a4f8f;
+        }
+        .btn-admin:hover {
+            background: linear-gradient(135deg, #6f4d82, #5a3f6b);
+        }
+        .btn-secondary {
+            background: rgba(42, 58, 78, 0.7);
+            border-color: #40566e;
+        }
+        .btn-secondary:hover {
+            background: rgba(58, 80, 104, 0.8);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #8f3b3b, #6f2a2a);
+            border-color: #b54a4a;
+        }
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #a84444, #8f3b3b);
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .footer {
+            margin-top: 34px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(42, 54, 71, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            color: #5a7a96;
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+        }
+        .footer a {
+            color: #3f8bb3;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+        .footer a:hover {
+            color: #5fa9d4;
+            text-decoration: underline;
+        }
+        .footer .telegram-icon {
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            background: #3f8bb3;
+            border-radius: 50%;
+            color: #fff;
+            text-align: center;
+            line-height: 22px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin: 22px 0;
+        }
+        .info-card {
+            background: rgba(26, 40, 60, 0.5);
+            backdrop-filter: blur(4px);
+            border-radius: 16px;
+            padding: 18px 16px;
+            border-left: 4px solid #2d3b4e;
+            border: 1px solid rgba(61, 87, 117, 0.15);
+            transition: 0.2s;
+        }
+        .info-card:hover {
+            border-color: rgba(63, 139, 179, 0.3);
+            transform: translateY(-2px);
+        }
+        .info-card .level-dot {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .info-card h4 {
+            font-size: 16px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            color: #d6e0ee;
+        }
+        .info-card p {
+            font-size: 14px;
+            color: #b0c2d6;
+            margin: 4px 0;
+        }
+        .info-card .cheater-range {
+            font-weight: 500;
+            color: #d6e0ee;
+        }
+        .info-section {
+            margin-top: 24px;
+            background: rgba(26, 37, 54, 0.5);
+            backdrop-filter: blur(4px);
+            border-radius: 16px;
+            padding: 18px 20px;
+            border: 1px solid rgba(45, 63, 85, 0.25);
+        }
+        .info-section h3 {
+            margin-bottom: 10px;
+            color: #d6e0ee;
+            font-weight: 600;
+        }
+        .info-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .info-section ul li {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(42, 54, 71, 0.3);
+            font-size: 14px;
+            color: #b0c2d6;
+        }
+        .info-section ul li:last-child { border-bottom: none; }
+        .info-section ul li strong { color: #d6e0ee; }
+        .info-section ul li a {
+            color: #3f8bb3;
+            text-decoration: none;
+        }
+        .info-section ul li a:hover { text-decoration: underline; }
+
+        /* ===== ЧАТ ===== */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+            max-height: 70vh;
+            background: rgba(15, 24, 35, 0.5);
+            backdrop-filter: blur(8px);
+            border-radius: 20px;
+            border: 1px solid rgba(61, 87, 117, 0.2);
+            overflow: hidden;
+            margin-top: 10px;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.2);
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scroll-behavior: smooth;
+        }
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #3f8bb3;
+            border-radius: 10px;
+        }
+
+        .message {
+            max-width: 82%;
+            padding: 10px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+            word-wrap: break-word;
+        }
+        .message.user {
+            align-self: flex-end;
+            background: rgba(43, 108, 143, 0.25);
+            border: 1px solid rgba(63, 139, 179, 0.25);
+            color: #e8edf5;
+        }
+        .message.bot {
+            align-self: flex-start;
+            background: rgba(26, 40, 60, 0.6);
+            border: 1px solid rgba(61, 87, 117, 0.2);
+            color: #d6e0ee;
+        }
+        .message .msg-time {
+            font-size: 10px;
+            color: #6e8aa6;
+            margin-top: 4px;
+            text-align: right;
+            opacity: 0.7;
+        }
+        .message.bot .msg-time {
+            text-align: left;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 10px;
+            padding: 12px 16px;
+            background: rgba(15, 24, 35, 0.6);
+            border-top: 1px solid rgba(61, 87, 117, 0.15);
+            backdrop-filter: blur(4px);
+            align-items: center;
+        }
+        .chat-input-area input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(61, 87, 117, 0.3);
+            color: #e8edf5;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .chat-input-area input:focus {
+            border-color: #3f8bb3;
+            box-shadow: 0 0 20px rgba(43, 108, 143, 0.1);
+        }
+        .chat-input-area .btn {
+            padding: 8px 20px;
+            font-size: 14px;
+        }
+
+        /* ===== МОДАЛЬНЫЕ ОКНА ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            padding: 20px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: rgba(22, 34, 50, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 32px;
+            max-width: 520px;
+            width: 100%;
+            padding: 28px 24px 32px;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(61, 87, 117, 0.25);
+            animation: fadeUp 0.3s ease;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .modal h2 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #d6e0ee;
+        }
+        .modal p {
+            color: #a0b5cc;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #cbdae9;
+            font-size: 14px;
+        }
+
+        .region-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .region-selector label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(15, 24, 35, 0.6);
+            padding: 6px 14px;
+            border-radius: 40px;
+            cursor: pointer;
+            border: 1px solid rgba(45, 63, 85, 0.4);
+            transition: 0.15s;
+            font-weight: 400;
+            color: #c8d6e8;
+            font-size: 14px;
+            backdrop-filter: blur(4px);
+        }
+        .region-selector label:hover {
+            background: rgba(29, 44, 62, 0.8);
+            border-color: #3f8bb3;
+        }
+        .region-selector input[type="radio"] {
+            accent-color: #3f8bb3;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .modal input[type="number"] {
+            background: rgba(15, 24, 35, 0.6);
+            border: 1px solid rgba(45, 63, 85, 0.4);
+            color: #e8edf5;
+            padding: 8px 14px;
+            border-radius: 30px;
+            width: 100%;
+            font-size: 14px;
+            backdrop-filter: blur(4px);
+            outline: none;
+            transition: border 0.2s;
+        }
+        .modal input[type="number"]:focus {
+            border-color: #3f8bb3;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .modal-actions .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        .admin-panel .form-group-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .admin-panel .form-group-inline label { margin-bottom: 0; }
+        .admin-panel input[type="number"] {
+            background: rgba(15, 24, 35, 0.6);
+            border: 1px solid rgba(45, 63, 85, 0.4);
+            color: #e8edf5;
+            padding: 6px 12px;
+            border-radius: 30px;
+            width: 80px;
+            font-size: 14px;
+            backdrop-filter: blur(4px);
+        }
+        .admin-panel input[type="password"] {
+            background: rgba(15, 24, 35, 0.6);
+            border: 1px solid rgba(45, 63, 85, 0.4);
+            color: #e8edf5;
+            padding: 8px 16px;
+            border-radius: 30px;
+            width: 100%;
+            font-size: 14px;
+            backdrop-filter: blur(4px);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(22, 34, 50, 0.95);
+            backdrop-filter: blur(12px);
+            color: #e2ecfa;
+            padding: 14px 28px;
+            border-radius: 60px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(61, 87, 117, 0.25);
+            display: none;
+            z-index: 1000;
+            white-space: nowrap;
+            max-width: 90%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .toast.show {
+            display: block;
+            animation: fadeUp 0.3s ease;
+        }
+
+        @media (max-width: 700px) {
+            .container { padding: 20px 16px 24px; }
+            .regions-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+            .region-card { padding: 14px 8px 12px; }
+            .circle { width: 56px; height: 56px; }
+            .modal { padding: 20px 16px 24px; }
+            h1 { font-size: 22px; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+            .action-bar .btn { justify-content: center; }
+            .action-bar .left-group { justify-content: center; }
+            .tabs { justify-content: center; }
+            .tab-btn { padding: 8px 14px; font-size: 14px; }
+            .footer { flex-direction: column; gap: 8px; text-align: center; }
+            .chat-container { height: 380px; }
+        }
+        @media (max-width: 450px) {
+            .regions-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .circle { width: 48px; height: 48px; }
+            .region-name { font-size: 15px; }
+            .btn { padding: 10px 18px; font-size: 14px; }
+            .report-stats { font-size: 10px; gap: 4px 6px; }
+            .info-grid { grid-template-columns: 1fr; }
+            .chat-container { height: 320px; }
+            .message { max-width: 95%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>
+                <span class="accent">🛡️</span> SSB2 Монитор
+                <small>Simple Sandbox 2</small>
+            </h1>
+            <div class="subtitle">
+                Сообщайте о читерах — система усреднит данные и обновит статус регионов
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="tab-news">📢 Новости</button>
+            <button class="tab-btn" data-tab="tab-online">🌐 Онлайн</button>
+            <button class="tab-btn" data-tab="tab-info">ℹ️ Прочее</button>
+            <button class="tab-btn" data-tab="tab-chat">🤖 ИИ помощник</button>
+        </div>
+
+        <!-- Вкладка Новости -->
+        <div id="tab-news" class="tab-content active">
+            <div class="last-update" id="lastUpdateNews">⏱️ Обновлено: только что</div>
+            <div class="regions-grid" id="regionsContainerNews"></div>
+            <div class="action-bar">
+                <div class="left-group">
+                    <button class="btn btn-primary" id="reportBtn">📢 Сообщить новость</button>
+                    <span class="cooldown" id="cooldownDisplay">⏳ Подождите <span class="time" id="cooldownTime">0:00</span></span>
+                </div>
+                <button class="btn btn-admin" id="adminBtn">🔐 Админ-панель</button>
+            </div>
+        </div>
+
+        <!-- Вкладка Онлайн -->
+        <div id="tab-online" class="tab-content">
+            <div class="last-update" id="lastUpdateOnline">⏱️ Обновлено: только что</div>
+            <div class="regions-grid" id="regionsContainerOnline"></div>
+        </div>
+
+        <!-- Вкладка Прочее -->
+        <div id="tab-info" class="tab-content">
+            <div style="margin-bottom: 20px;">
+                <h2 style="font-size: 22px; margin-bottom: 12px; color: #d6e0ee;">📖 Как работает мониторинг</h2>
+                <p style="color: #b0c2d6; font-size: 15px; line-height: 1.6;">
+                    Здесь вы можете узнать, что означают цвета кружков и как реагировать на изменения.
+                </p>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-card" style="border-left-color: #2e9b5e;">
+                    <h4><span class="level-dot" style="background: #2e9b5e;"></span> Зелёный</h4>
+                    <p><span class="cheater-range">0 читеров</span></p>
+                    <p>Всё спокойно. Играть безопасно.</p>
+                </div>
+                <div class="info-card" style="border-left-color: #d4b84c;">
+                    <h4><span class="level-dot" style="background: #d4b84c;"></span> Жёлтый</h4>
+                    <p><span class="cheater-range">1–3 читера</span></p>
+                    <p>Опасность присутствует. Будьте внимательны, возможны отдельные нарушения.</p>
+                </div>
+                <div class="info-card" style="border-left-color: #d97a2b;">
+                    <h4><span class="level-dot" style="background: #d97a2b;"></span> Оранжевый</h4>
+                    <p><span class="cheater-range">5–19 читеров</span></p>
+                    <p>Высокая активность читеров. Рекомендуется избегать игры или использовать защиту.</p>
+                </div>
+                <div class="info-card" style="border-left-color: #c53e3e;">
+                    <h4><span class="level-dot" style="background: #c53e3e;"></span> Красный</h4>
+                    <p><span class="cheater-range">20+ читеров</span></p>
+                    <p>Играть невозможно! Сервер переполнен читерами.</p>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>📌 Как это работает</h3>
+                <ul>
+                    <li><strong>Сообщения пользователей:</strong> Вы указываете регион и количество замеченных читеров. Система накапливает данные.</li>
+                    <li><strong>Усреднение:</strong> Когда для региона набирается <strong>5 сообщений</strong>, вычисляется среднее арифметическое — оно становится новым значением читеров в регионе.</li>
+                    <li><strong>Таймаут 3 минуты (индивидуальный для каждого пользователя):</strong> После отправки вы не сможете отправить следующее сообщение в течение 3 минут. Таймаут хранится в sessionStorage, поэтому он уникален для каждой вкладки и пользователя.</li>
+                    <li><strong>Администратор:</strong> Может вручную установить любое количество читеров через <strong>«Админ-панель»</strong>.</li>
+                    <li><strong>Сохранение:</strong> Все данные сохраняются в вашем браузере. При перезагрузке состояние восстанавливается.</li>
+                </ul>
+            </div>
+
+            <div class="info-section" style="margin-top: 16px;">
+                <h3>🛡️ Что делать при опасности</h3>
+                <ul>
+                    <li><strong>Жёлтый:</strong> Сообщите о точном количестве читеров, чтобы ускорить обновление статуса.</li>
+                    <li><strong>Оранжевый:</strong> Рекомендуем временно покинуть регион или использовать античит-защиту.</li>
+                    <li><strong>Красный:</strong> Сервер непригоден для игры. Сообщите администрации, если статус не меняется.</li>
+                    <li><strong>Всегда проверяйте</strong> вкладку «Онлайн» для актуальной картины без лишней информации.</li>
+                </ul>
+            </div>
+
+            <div class="info-section" style="margin-top: 16px;">
+                <h3>🔗 Полезные ссылки</h3>
+                <ul>
+                    <li>
+                        <strong>Телеграм-канал «Радар ССБ2»:</strong>
+                        <a href="https://t.me/rabar_ssb2" target="_blank">https://t.me/rabar_ssb2</a>
+                        — актуальные новости и обсуждения.
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ИИ ПОМОЩНИК -->
+        <div id="tab-chat" class="tab-content">
+            <div style="margin-bottom: 12px;">
+                <h2 style="font-size: 20px; color: #d6e0ee;">🤖 ИИ-помощник SSB2</h2>
+                <p style="color: #7a94b2; font-size: 14px;">Задайте вопрос об игре, мониторинге, читерах, регионах, безопасности или о том, как работает сайт. Я помню историю диалога!</p>
+            </div>
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot">
+                        Привет! Я супер-умный ИИ-помощник по Simple Sandbox 2. Могу рассказать о ситуации в любом регионе, подсказать, безопасно ли сейчас играть, объяснить работу мониторинга, ответить на вопросы о создателе игры, обновлениях и многом другом. Я помню историю нашего разговора, так что уточняй! Спрашивай что угодно. 😊
+                        <div class="msg-time">сейчас</div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chatInput" placeholder="Напишите свой вопрос..." autofocus>
+                    <button class="btn btn-primary" id="chatSendBtn">➤ Отправить</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Футер -->
+        <div class="footer">
+            <span>🛡️ SSB2 Монитор — v2.3 (синхронизация между вкладками)</span>
+            <span>•</span>
+            <a href="https://t.me/rabar_ssb2" target="_blank">
+                <span class="telegram-icon">✈</span> Радар ССБ2
+            </a>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНЫЕ ОКНА -->
+    <div class="modal-overlay" id="reportModal">
+        <div class="modal">
+            <h2>📨 Сообщить о читерах</h2>
+            <p>Выберите регион и укажите, сколько читеров вы заметили на сервере.</p>
+            <div class="form-group">
+                <label>Регион</label>
+                <div class="region-selector" id="reportRegionSelector"></div>
+            </div>
+            <div class="form-group">
+                <label>Количество читеров</label>
+                <input type="number" id="reportCheaterCount" min="0" max="50" placeholder="Введите число" value="0">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancelReportBtn">Отмена</button>
+                <button class="btn btn-primary" id="sendReportBtn">✉️ Отправить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal admin-panel">
+            <h2>🔐 Админ-панель</h2>
+            <p>Введите пароль для доступа к ручному управлению регионами.</p>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" id="adminPassword" placeholder="Введите пароль">
+            </div>
+            <div id="adminContent" style="display:none;">
+                <hr style="border-color:rgba(42,54,71,0.4);margin:16px 0;">
+                <div class="form-group">
+                    <label>Выберите регион</label>
+                    <div class="region-selector" id="adminRegionSelector"></div>
+                </div>
+                <div class="form-group">
+                    <label>Установить количество читеров</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+                        <input type="number" id="adminCheaterCount" value="0" min="0" max="50">
+                        <button class="btn btn-primary" id="adminApplyBtn">Применить</button>
+                        <button class="btn btn-danger" id="adminResetReportsBtn">Сбросить накопленные данные</button>
+                    </div>
+                    <div style="margin-top:8px;font-size:13px;color:#6e8aa6;">
+                        Зелёный: 0 &bull; Жёлтый: 1-3 &bull; Оранжевый: 5-19 &bull; Красный: 20+
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancelAdminBtn">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            console.log('🚀 SSB2 Монитор — синхронизация между вкладками');
+
+            // =============================================================
+            //  1. КОНСТАНТЫ
+            // =============================================================
+            const REGIONS = [
+                { id: 'eu', label: 'EU', fullName: 'Европа' },
+                { id: 'usa', label: 'USA', fullName: 'США' },
+                { id: 'as', label: 'AS', fullName: 'Азия' },
+                { id: 'ru', label: 'RU', fullName: 'Россия' },
+                { id: 'br', label: 'BR', fullName: 'Бразилия' },
+                { id: 'uk', label: 'UK', fullName: 'Украина' }
+            ];
+
+            const DANGER_LEVELS = [
+                { key: 'green', label: 'Спокойно', min: 0, max: 0, color: '#2e9b5e' },
+                { key: 'yellow', label: 'Опасность есть', min: 1, max: 3, color: '#d4b84c' },
+                { key: 'orange', label: 'Читеры есть', min: 5, max: 19, color: '#d97a2b' },
+                { key: 'red', label: 'Невозможно играть', min: 20, max: Infinity, color: '#c53e3e' }
+            ];
+
+            const THRESHOLD = 5;
+            const ADMIN_PASSWORD = '1488093чит';
+            const COOLDOWN_MS = 3 * 60 * 1000;
+
+            // =============================================================
+            //  2. ХРАНИЛИЩЕ (localStorage + fallback)
+            // =============================================================
+            let memoryStorage = {};
+
+            function isLocalStorageAvailable() {
+                try {
+                    const testKey = '__test__';
+                    localStorage.setItem(testKey, 'test');
+                    localStorage.removeItem(testKey);
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            const storageAvailable = isLocalStorageAvailable();
+
+            function saveToStorage(key, data) {
+                try {
+                    if (storageAvailable) {
+                        localStorage.setItem(key, JSON.stringify(data));
+                    } else {
+                        memoryStorage[key] = data;
+                    }
+                } catch (e) {
+                    memoryStorage[key] = data;
+                }
+            }
+
+            function loadFromStorage(key) {
+                try {
+                    if (storageAvailable) {
+                        const saved = localStorage.getItem(key);
+                        if (saved) return JSON.parse(saved);
+                        return null;
+                    } else {
+                        return memoryStorage[key] || null;
+                    }
+                } catch (e) {
+                    return memoryStorage[key] || null;
+                }
+            }
+
+            // =============================================================
+            //  3. СОСТОЯНИЕ (общее для всех)
+            // =============================================================
+            let cheaterCounts = {};
+            let reportData = {};
+            let processing = false; // флаг для предотвращения гонок
+
+            function saveState() {
+                saveToStorage('ss2_monitor_state', { cheaterCounts, reportData });
+            }
+
+            function loadState() {
+                const parsed = loadFromStorage('ss2_monitor_state');
+                if (!parsed) return false;
+                let valid = true;
+                REGIONS.forEach(r => {
+                    if (!(r.id in parsed.cheaterCounts)) { valid = false; return; }
+                    if (!(r.id in parsed.reportData)) { valid = false; return; }
+                    parsed.cheaterCounts[r.id] = Number(parsed.cheaterCounts[r.id]) || 0;
+                    if (!Array.isArray(parsed.reportData[r.id])) { valid = false; return; }
+                    parsed.reportData[r.id] = parsed.reportData[r.id].map(Number).filter(n => !isNaN(n) && n >= 0);
+                });
+                if (!valid) return false;
+                cheaterCounts = parsed.cheaterCounts;
+                reportData = parsed.reportData;
+                return true;
+            }
+
+            // =============================================================
+            //  4. ИНИЦИАЛИЗАЦИЯ
+            // =============================================================
+            function initState() {
+                if (!loadState()) {
+                    REGIONS.forEach(r => {
+                        cheaterCounts[r.id] = 0;
+                        reportData[r.id] = [];
+                    });
+                    saveState();
+                }
+            }
+            initState();
+
+            // =============================================================
+            //  5. КУЛДАУН (индивидуальный)
+            // =============================================================
+            const COOLDOWN_KEY = 'ss2_last_report_time_session';
+
+            function getCooldownRemaining() {
+                try {
+                    const last = sessionStorage.getItem(COOLDOWN_KEY);
+                    if (!last) return 0;
+                    return Math.max(0, COOLDOWN_MS - (Date.now() - parseInt(last)));
+                } catch (e) {
+                    return 0;
+                }
+            }
+
+            function isCooldownActive() { return getCooldownRemaining() > 0; }
+
+            function setCooldown() {
+                try {
+                    sessionStorage.setItem(COOLDOWN_KEY, String(Date.now()));
+                } catch (e) { /* ignore */ }
+                updateCooldownUI();
+            }
+
+            let cooldownInterval = null;
+
+            function updateCooldownUI() {
+                const remaining = getCooldownRemaining();
+                const display = document.getElementById('cooldownDisplay');
+                const timeEl = document.getElementById('cooldownTime');
+                const reportBtn = document.getElementById('reportBtn');
+                if (!display || !timeEl || !reportBtn) return;
+
+                if (remaining > 0) {
+                    const mins = Math.floor(remaining / 60000);
+                    const secs = Math.floor((remaining % 60000) / 1000);
+                    timeEl.textContent = mins + ':' + secs.toString().padStart(2, '0');
+                    display.classList.add('show');
+                    reportBtn.disabled = true;
+                    if (!cooldownInterval) {
+                        cooldownInterval = setInterval(updateCooldownUI, 1000);
+                    }
+                } else {
+                    display.classList.remove('show');
+                    reportBtn.disabled = false;
+                    if (cooldownInterval) {
+                        clearInterval(cooldownInterval);
+                        cooldownInterval = null;
+                    }
+                }
+            }
+
+            // =============================================================
+            //  6. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+            // =============================================================
+            function getDangerLevel(count) {
+                for (let lv of DANGER_LEVELS) {
+                    if (count >= lv.min && count <= lv.max) return lv;
+                }
+                return DANGER_LEVELS[0];
+            }
+            function getColor(count) { return getDangerLevel(count).color; }
+            function getPulseClass(count) { return 'pulse-' + getDangerLevel(count).key; }
+            function getStatusText(count) { return getDangerLevel(count).label; }
+            function average(arr) { return arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0; }
+
+            // =============================================================
+            //  7. РЕНДЕРИНГ
+            // =============================================================
+            function renderRegions(containerId, showReports, updateElementId) {
+                const container = document.getElementById(containerId);
+                const updateEl = document.getElementById(updateElementId);
+                if (!container) return;
+
+                let html = '';
+                REGIONS.forEach(region => {
+                    const id = region.id;
+                    const count = cheaterCounts[id] || 0;
+                    const color = getColor(count);
+                    const status = getStatusText(count);
+                    const pulseClass = getPulseClass(count);
+                    const reports = reportData[id] || [];
+
+                    let statsHtml = '';
+                    if (showReports) {
+                        const avg = average(reports);
+                        statsHtml = `<div class="report-stats">
+                            <span>📊 Сообщений: ${reports.length}</span>
+                            ${reports.length > 0 ? `<span>📈 Среднее: ${avg}</span>` : ''}
+                        </div>`;
+                    }
+
+                    html += `
+                        <div class="region-card" data-region="${id}">
+                            <div class="region-name">${region.fullName} <span class="label">${region.label}</span></div>
+                            <div class="status-indicator">
+                                <div class="circle ${pulseClass}" style="background:${color};"></div>
+                                <span class="status-label">${status}</span>
+                                <span class="cheater-count">👾 ${count} читер${count%10===1 && count%100!==11 ? '' : count%10>=2 && count%10<=4 && (count%100<10 || count%100>=20) ? 'а' : 'ов'}</span>
+                                ${statsHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+                if (updateEl) {
+                    updateEl.textContent = '⏱️ Обновлено: ' + new Date().toLocaleTimeString();
+                }
+            }
+
+            function renderAll() {
+                renderRegions('regionsContainerNews', true, 'lastUpdateNews');
+                renderRegions('regionsContainerOnline', false, 'lastUpdateOnline');
+            }
+
+            // =============================================================
+            //  8. ЛОГИКА СООБЩЕНИЙ (с защитой от гонок)
+            // =============================================================
+            function processReports(regionId) {
+                if (processing) return false;
+                processing = true;
+                try {
+                    const arr = reportData[regionId] || [];
+                    if (arr.length >= THRESHOLD) {
+                        const avg = average(arr);
+                        cheaterCounts[regionId] = avg;
+                        reportData[regionId] = [];
+                        saveState();
+                        renderAll();
+                        const regionName = REGIONS.find(r => r.id === regionId).fullName;
+                        showToast('📢 Регион ' + regionName + ' обновлён: ' + avg + ' читер' + (avg % 10 === 1 && avg % 100 !== 11 ? '' : avg % 10 >= 2 && avg % 10 <= 4 && (avg % 100 < 10 || avg % 100 >= 20) ? 'а' : 'ов'));
+                        return true;
+                    }
+                    return false;
+                } finally {
+                    processing = false;
+                }
+            }
+
+            function addReport(regionId, cheaterCount) {
+                if (isCooldownActive()) {
+                    const remaining = getCooldownRemaining();
+                    const mins = Math.floor(remaining / 60000);
+                    const secs = Math.floor((remaining % 60000) / 1000);
+                    showToast('⏳ Подождите ' + mins + ':' + secs.toString().padStart(2, '0') + ' перед следующей отправкой.');
+                    return;
+                }
+
+                const num = Math.min(50, Math.max(0, Math.round(cheaterCount)));
+                if (!reportData[regionId]) reportData[regionId] = [];
+                reportData[regionId].push(num);
+                saveState();
+                renderAll();
+
+                if (!processReports(regionId)) {
+                    const count = reportData[regionId].length;
+                    const regionName = REGIONS.find(r => r.id === regionId).fullName;
+                    showToast('📨 Сообщение для ' + regionName + ' (' + count + '/' + THRESHOLD + ')');
+                }
+                setCooldown();
+            }
+
+            // =============================================================
+            //  9. АДМИНИСТРИРОВАНИЕ
+            // =============================================================
+            function adminSetRegion(regionId, val) {
+                cheaterCounts[regionId] = Math.min(50, Math.max(0, val));
+                reportData[regionId] = [];
+                saveState();
+                renderAll();
+                const regionName = REGIONS.find(r => r.id === regionId).fullName;
+                showToast('🔐 Админ: регион ' + regionName + ' установлен на ' + cheaterCounts[regionId] + ' читер' + (cheaterCounts[regionId] % 10 === 1 && cheaterCounts[regionId] % 100 !== 11 ? '' : cheaterCounts[regionId] % 10 >= 2 && cheaterCounts[regionId] % 10 <= 4 && (cheaterCounts[regionId] % 100 < 10 || cheaterCounts[regionId] % 100 >= 20) ? 'а' : 'ов'));
+            }
+
+            function adminResetReports(regionId) {
+                reportData[regionId] = [];
+                saveState();
+                renderAll();
+                const regionName = REGIONS.find(r => r.id === regionId).fullName;
+                showToast('🧹 Накопленные данные для ' + regionName + ' сброшены');
+            }
+
+            // =============================================================
+            //  10. МОДАЛЬНЫЕ ОКНА
+            // =============================================================
+            const reportModal = document.getElementById('reportModal');
+            const adminModal = document.getElementById('adminModal');
+
+            function buildRegionSelector(containerId, nameAttr, checkedId) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                let html = '';
+                REGIONS.forEach(r => {
+                    const checked = (r.id === (checkedId || 'eu')) ? 'checked' : '';
+                    html += `
+                        <label>
+                            <input type="radio" name="${nameAttr}" value="${r.id}" ${checked}>
+                            ${r.fullName} (${r.label})
+                        </label>
+                    `;
+                });
+                container.innerHTML = html;
+            }
+
+            function openReportModal() {
+                if (isCooldownActive()) {
+                    const remaining = getCooldownRemaining();
+                    const mins = Math.floor(remaining / 60000);
+                    const secs = Math.floor((remaining % 60000) / 1000);
+                    showToast('⏳ Подождите ' + mins + ':' + secs.toString().padStart(2, '0') + ' перед следующей отправкой.');
+                    return;
+                }
+                buildRegionSelector('reportRegionSelector', 'reportRegion', 'eu');
+                const input = document.getElementById('reportCheaterCount');
+                if (input) input.value = '';
+                reportModal.classList.add('active');
+            }
+
+            function closeReportModal() {
+                reportModal.classList.remove('active');
+            }
+
+            function openAdminModal() {
+                const passInput = document.getElementById('adminPassword');
+                const content = document.getElementById('adminContent');
+                if (passInput) passInput.value = '';
+                if (content) content.style.display = 'none';
+                buildRegionSelector('adminRegionSelector', 'adminRegion', 'eu');
+                adminModal.classList.add('active');
+            }
+
+            function closeAdminModal() {
+                adminModal.classList.remove('active');
+            }
+
+            // =============================================================
+            //  11. TOAST
+            // =============================================================
+            const toast = document.getElementById('toast');
+            let toastTimeout;
+
+            function showToast(text) {
+                if (!toast) return;
+                toast.textContent = text;
+                toast.classList.add('show');
+                clearTimeout(toastTimeout);
+                toastTimeout = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 5000);
+            }
+
+            // =============================================================
+            //  12. СИНХРОНИЗАЦИЯ МЕЖДУ ВКЛАДКАМИ (событие storage)
+            // =============================================================
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'ss2_monitor_state') {
+                    console.log('🔄 Обнаружено изменение в другой вкладке, перезагружаем состояние...');
+                    loadState();
+                    renderAll();
+                    updateCooldownUI();
+                }
+            });
+
+            // =============================================================
+            //  13. ИИ-ПОМОЩНИК
+            // =============================================================
+            const chatMessages = document.getElementById('chatMessages');
+            const chatInput = document.getElementById('chatInput');
+            const chatSendBtn = document.getElementById('chatSendBtn');
+            let chatHistory = [];
+
+            function getRegionStatus(regionId) {
+                const count = cheaterCounts[regionId] || 0;
+                const level = getDangerLevel(count);
+                const status = level.label;
+                const emoji = level.key === 'green' ? '🟢' : level.key === 'yellow' ? '🟡' : level.key === 'orange' ? '🟠' : '🔴';
+                return `${emoji} ${status} (${count} читер${count%10===1 && count%100!==11 ? '' : count%10>=2 && count%10<=4 && (count%100<10 || count%100>=20) ? 'а' : 'ов'})`;
+            }
+
+            const regionMap = {
+                'европа': 'eu', 'европе': 'eu', 'европейском': 'eu',
+                'сша': 'usa', 'америка': 'usa',
+                'азии': 'as', 'азия': 'as',
+                'россии': 'ru', 'россия': 'ru', 'русском': 'ru',
+                'бразилии': 'br', 'бразилия': 'br',
+                'украине': 'uk', 'украина': 'uk'
+            };
+
+            function getBotResponse(userText) {
+                const lower = userText.toLowerCase();
+
+                if (lower.match(/\b(привет|здравствуй|здравствуйте|хай|hello|ку|салют|добрый день|доброе утро|добрый вечер)\b/)) {
+                    return 'Привет! 👋 Я ИИ-помощник SSB2. Спрашивай о чём угодно — я помню наш разговор! 😊';
+                }
+
+                for (let [name, id] of Object.entries(regionMap)) {
+                    if (lower.includes(name)) {
+                        const region = REGIONS.find(r => r.id === id);
+                        if (region) {
+                            const status = getRegionStatus(id);
+                            const reports = reportData[id] || [];
+                            let extra = '';
+                            if (reports.length > 0) {
+                                extra = ` Сейчас накоплено ${reports.length} сообщений (среднее: ${average(reports)}).`;
+                            }
+                            return `📊 В регионе **${region.fullName} (${region.label})** сейчас ${status}.${extra} Если вы заметили читеров — сообщите через "Новости".`;
+                        }
+                    }
+                }
+
+                if (lower.match(/\b(безопасно|опасно|стоит ли играть|можно ли играть|заходить|играть сейчас|риск|лучше не играть)\b/)) {
+                    const dangerousRegions = [];
+                    REGIONS.forEach(r => {
+                        const count = cheaterCounts[r.id] || 0;
+                        const level = getDangerLevel(count);
+                        if (level.key === 'red' || level.key === 'orange') {
+                            dangerousRegions.push(`${r.fullName} (${level.label})`);
+                        }
+                    });
+                    if (dangerousRegions.length === 0) {
+                        return '✅ Сейчас во всех регионах спокойно (зелёный или жёлтый уровень). Играть безопасно! Но всегда следите за обновлениями.';
+                    } else {
+                        return `⚠️ Внимание! Опасность в регионах: ${dangerousRegions.join(', ')}. Рекомендуем избегать игры там. В остальных регионах ситуация стабильна. Проверяйте вкладку "Онлайн" для актуальной картины.`;
+                    }
+                }
+
+                if (lower.match(/\b(кто создатель|кто разработал|создатель ссб|разработчик|автор игры|кто сделал)\b/)) {
+                    return '🎮 Simple Sandbox 2 — это игра-песочница, созданная независимым разработчиком. Точное имя создателя не разглашается, но проект активно поддерживается сообществом. Следите за новостями в телеграм-канале "Радар ССБ2".';
+                }
+
+                if (lower.match(/\b(обновление|патч|новая версия|вышло обновление|что нового|изменения|фиксы)\b/)) {
+                    return '🔄 Информация об обновлениях Simple Sandbox 2 обычно появляется в официальных каналах игры и в телеграм-канале "Радар ССБ2". Рекомендуем следить там за новостями. Наш мониторинг обновляется автоматически при поступлении сообщений от пользователей.';
+                }
+
+                if (lower.match(/\b(совет|как играть|стратегия|что делать|рекомендация|лучше|подсказка)\b/)) {
+                    return '💡 Основные советы по Simple Sandbox 2:\n• Следите за уровнем опасности в регионах перед входом.\n• Если видите читеров — сообщайте через "Новости", чтобы помочь другим.\n• Используйте вкладку "Онлайн" для быстрой оценки ситуации.\n• В красных регионах играть крайне не рекомендуется.\n• Подписывайтесь на телеграм-канал "Радар ССБ2" для оперативных новостей.';
+                }
+
+                if (lower.match(/\b(история|динамика|как менялось|статистика|график|тренд)\b/)) {
+                    return '📈 Наш мониторинг не хранит историю изменений, но вы можете видеть текущее состояние регионов на вкладках "Новости" и "Онлайн". Каждое сообщение пользователя влияет на усреднённое значение, которое обновляется после 5 сообщений.';
+                }
+
+                if (lower.match(/\b(сайт|мониторинг|как работает|принцип|зачем нужен|что это)\b/)) {
+                    return '🌐 Этот сайт — мониторинг читеров для Simple Sandbox 2. Он собирает сообщения от игроков о количестве читеров в 6 регионах. После 5 сообщений вычисляется среднее арифметическое, и регион обновляется. Администратор может вручную корректировать данные. Все изменения сохраняются в вашем браузере.';
+                }
+
+                if (lower.match(/\b(телеграм|радар|канал|ссылка|тг)\b/)) {
+                    return '📱 Телеграм-канал «Радар ССБ2»: https://t.me/rabar_ssb2 — там публикуются актуальные новости, обсуждения и полезная информация по игре. Подписывайтесь!';
+                }
+
+                if (lower.match(/\b(регионы|сколько регионов|какие регионы|список регионов|все регионы)\b/)) {
+                    let regionsList = REGIONS.map(r => `${r.fullName} (${r.label})`).join(', ');
+                    return `🌍 Доступны 6 регионов: ${regionsList}. Выберите нужный во вкладке "Новости" для отправки сообщения.`;
+                }
+
+                if (lower.match(/\b(уровни|цвета|кружки|пульсация|что означают цвета|цвет круга)\b/)) {
+                    return '🎨 Уровни опасности:\n🟢 Зелёный — 0 читеров, спокойно.\n🟡 Жёлтый — 1-3 читера, опасность есть.\n🟠 Оранжевый — 5-19 читеров, читеры есть.\n🔴 Красный — 20+ читеров, играть невозможно.\nПульсация кружка усиливается с ростом опасности.';
+                }
+
+                if (lower.match(/\b(спасибо|благодарю|ты лучший|отлично|класс|супер)\b/)) {
+                    return '😊 Всегда рад помочь! Если у тебя ещё есть вопросы по Simple Sandbox 2 или мониторингу — смело спрашивай. Удачи в игре!';
+                }
+
+                let lastRegionId = null;
+                for (let i = chatHistory.length - 1; i >= 0; i--) {
+                    const msg = chatHistory[i].toLowerCase();
+                    for (let [name, id] of Object.entries(regionMap)) {
+                        if (msg.includes(name)) {
+                            lastRegionId = id;
+                            break;
+                        }
+                    }
+                    if (lastRegionId) break;
+                }
+
+                if (lastRegionId && (lower.match(/\b(а там|а в нем|а на нем|а что там|и что|ну и|а как)\b/) || lower.length < 20)) {
+                    const region = REGIONS.find(r => r.id === lastRegionId);
+                    if (region) {
+                        const status = getRegionStatus(lastRegionId);
+                        return `📊 По региону **${region.fullName} (${region.label})** сейчас ${status}. Хотите что-то ещё узнать?`;
+                    }
+                }
+
+                return '🤔 Я пока не знаю ответа на этот вопрос, но могу помочь по темам: игра Simple Sandbox 2, читеры, регионы, уровни опасности, мониторинг, создатель игры, безопасность, обновления, советы. Попробуй переформулировать вопрос или спроси что-то из этих тем.';
+            }
+
+            function addMessage(text, sender) {
+                const msgDiv = document.createElement('div');
+                msgDiv.classList.add('message', sender);
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                const formattedText = text.replace(/\n/g, '<br>');
+                msgDiv.innerHTML = formattedText + `<div class="msg-time">${timeStr}</div>`;
+                chatMessages.appendChild(msgDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                if (sender === 'user') {
+                    chatHistory.push(text);
+                    if (chatHistory.length > 15) chatHistory.shift();
+                }
+            }
+
+            function handleChatSend() {
+                const text = chatInput.value.trim();
+                if (!text) {
+                    showToast('⚠️ Напишите вопрос.');
+                    return;
+                }
+                addMessage(text, 'user');
+                chatInput.value = '';
+                const response = getBotResponse(text);
+                setTimeout(() => {
+                    addMessage(response, 'bot');
+                }, 400);
+            }
+
+            chatSendBtn.addEventListener('click', handleChatSend);
+            chatInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleChatSend();
+                }
+            });
+
+            // =============================================================
+            //  14. ПОДКЛЮЧЕНИЕ ОБРАБОТЧИКОВ
+            // =============================================================
+            function init() {
+                console.log('🚀 Финальная инициализация...');
+
+                document.getElementById('reportBtn').addEventListener('click', openReportModal);
+                document.getElementById('cancelReportBtn').addEventListener('click', closeReportModal);
+                document.getElementById('sendReportBtn').addEventListener('click', function() {
+                    const selectedRegion = document.querySelector('input[name="reportRegion"]:checked');
+                    const inputCount = document.getElementById('reportCheaterCount');
+                    if (!selectedRegion) {
+                        showToast('⚠️ Выберите регион.');
+                        return;
+                    }
+                    const count = parseInt(inputCount ? inputCount.value : '');
+                    if (isNaN(count) || count < 0 || count > 50) {
+                        showToast('⚠️ Введите число от 0 до 50.');
+                        return;
+                    }
+                    addReport(selectedRegion.value, count);
+                    closeReportModal();
+                });
+
+                document.getElementById('adminBtn').addEventListener('click', openAdminModal);
+                document.getElementById('cancelAdminBtn').addEventListener('click', closeAdminModal);
+
+                const adminPassword = document.getElementById('adminPassword');
+                const adminContent = document.getElementById('adminContent');
+                adminPassword.addEventListener('input', function() {
+                    if (this.value === ADMIN_PASSWORD) {
+                        adminContent.style.display = 'block';
+                        showToast('🔓 Доступ разрешён');
+                    } else {
+                        adminContent.style.display = 'none';
+                    }
+                });
+
+                document.getElementById('adminApplyBtn').addEventListener('click', function() {
+                    const selectedRegion = document.querySelector('input[name="adminRegion"]:checked');
+                    if (!selectedRegion) {
+                        showToast('⚠️ Выберите регион');
+                        return;
+                    }
+                    const val = parseInt(document.getElementById('adminCheaterCount').value);
+                    if (isNaN(val) || val < 0) {
+                        showToast('⚠️ Введите корректное число');
+                        return;
+                    }
+                    adminSetRegion(selectedRegion.value, val);
+                    closeAdminModal();
+                });
+
+                document.getElementById('adminResetReportsBtn').addEventListener('click', function() {
+                    const selectedRegion = document.querySelector('input[name="adminRegion"]:checked');
+                    if (!selectedRegion) {
+                        showToast('⚠️ Выберите регион');
+                        return;
+                    }
+                    adminResetReports(selectedRegion.value);
+                    closeAdminModal();
+                });
+
+                reportModal.addEventListener('click', function(e) {
+                    if (e.target === reportModal) closeReportModal();
+                });
+                adminModal.addEventListener('click', function(e) {
+                    if (e.target === adminModal) closeAdminModal();
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        if (reportModal.classList.contains('active')) closeReportModal();
+                        if (adminModal.classList.contains('active')) closeAdminModal();
+                    }
+                });
+
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const tabId = this.dataset.tab;
+                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                        this.classList.add('active');
+                        document.getElementById(tabId).classList.add('active');
+                        renderAll();
+                        if (tabId === 'tab-chat') {
+                            setTimeout(() => chatInput.focus(), 100);
+                        }
+                    });
+                });
+
+                renderAll();
+                updateCooldownUI();
+
+                setTimeout(() => {
+                    showToast('🛡️ SSB2 Монитор готов! Данные синхронизируются между вкладками.');
+                }, 800);
+
+                console.log('✅ Финальная инициализация завершена');
+            }
+
+            // =============================================================
+            //  15. ЗАПУСК
+            // =============================================================
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+        })();
+    </script>
+
+</body>
+</html>
